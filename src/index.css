@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ====================================================================
+       THEME CONFIGURATION
+       Tweak these values to globally change the appearance of the app!
+       ==================================================================== */
+
+    /* 1. CORE COLORS (HSL Format: Hue Saturation Lightness / Opacity) */
+    /* You can now tweak the color AND the transparency (e.g., / 0.5) in one line! */
+    --background: 27 100% 53% / 0.2;
+    --foreground: 222 47% 11% / 1;
+    --card: 0 0% 100% / 1;
+    --card-foreground: 222 47% 11% / 1;
+
+    --primary: 210 100% 20% / 1;
+    --primary-foreground: 210 40% 98% / 1;
+
+    --success: 160 84% 39% / 1;
+    --success-foreground: 210 40% 98% / 1;
+
+    --destructive: 0 84.2% 60.2% / 1;
+    --destructive-foreground: 210 40% 98% / 1;
+
+    --muted: 210 40% 96.1% / 1;
+    --muted-foreground: 215.4 16.3% 46.9% / 1;
+    --border: 214.3 31.8% 91.4% / 1;
+    --input: 214.3 31.8% 91.4% / 1;
+
+    /* 2. SHAPES & SIZING */
+    --radius: 0.75rem;
+    --base-font-size: 16px;
+
+    /* 3. OTHER SETTINGS */
+    --grid-color: #cbd5e1;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  /* GLOBAL BODY STYLES */
+  body {
+    background-color: hsl(var(--background));
+    /* Dotted grid depth effect */
+    background-image:
+      radial-gradient(circle at center, transparent 0%, hsl(var(--background)) 100%),
+      radial-gradient(var(--grid-color) 1px, transparent 1px);
+    background-size: 100% 100%, 24px 24px;
+    background-attachment: fixed;
+
+    font-size: var(--base-font-size);
+    font-family: var(--font-sans), 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    @apply text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Apply global card opacity if needed */
+  .card,
+  [class*="card"] {
+    background-color: hsl(var(--card)) !important;
+  }
+}
+
+
+@layer components {
+
+  /* Glass morphism */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-sm;
+  }
+
+  /* Card with subtle shadow */
+  .card-shadow {
+    @apply shadow-[0_4px_30px_rgba(0, 0, 0, 0.05)];
+  }
+
+  /* Button hover effect */
+  .btn-hover {
+    @apply transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md active:translate-y-[0px] active:shadow-sm;
+  }
+
+  /* Page transitions */
+  .page-enter {
+    @apply animate-fade-in;
+  }
+
+  .page-exit {
+    @apply animate-fade-out;
+  }
+
+  /* Text animations */
+
+
+
+  .text-gradient {
+    /* You can keep this for specific text elements if needed, but the body background is now a gradient */
+    background: linear-gradient(90deg, #197400, #131158, #113c4a);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient 3s linear infinite;
+  }
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5), 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+
+  to {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Add this at the end of your index.css file */
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 15s linear infinite;
+  white-space: nowrap;
+}
