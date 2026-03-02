@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { userDb } from "@/lib/neon";
+import { userDb, dataDb } from "@/lib/neon";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogAction, AlertDialogCancel, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { BankCombobox } from "@/components/ui/BankCombobox";
@@ -54,6 +54,7 @@ const Admin = () => {
   const [showNewPassword, setShowNewPassword] = useState(true);
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const [newUser, setNewUser] = useState({
     userId: "", password: "", accountName: "", accountNumber: "82855296984261",
@@ -111,66 +112,76 @@ const Admin = () => {
   };
 
   const handleCreateUser = async () => {
+    if (isCreating) return;
     try {
+      setIsCreating(true);
+      console.log('[CREATE] Step 1: Button clicked, starting validation...');
+
       if (!newUser.userId || !newUser.password || !newUser.accountName || !newUser.accountNumber) {
+        console.warn('[CREATE] STOPPED: Missing required fields', { userId: newUser.userId, password: newUser.password, accountName: newUser.accountName, accountNumber: newUser.accountNumber });
         toast({ title: "Validation Error", description: "Please fill in all required fields.", variant: "destructive" });
         return;
       }
 
       const bankNameToSave = newUser.bankName === "Others" ? manualBankName : newUser.bankName;
       if (!bankNameToSave) {
+        console.warn('[CREATE] STOPPED: No bank selected');
         toast({ title: "Validation Error", description: "Please select a bank name.", variant: "destructive" });
         return;
       }
 
+      console.log('[CREATE] Step 2: Checking for existing user in userDb...');
       const existingUser = await userDb`SELECT user_id FROM users WHERE user_id = ${newUser.userId} LIMIT 1`;
       if (existingUser && existingUser.length > 0) {
+        console.warn('[CREATE] STOPPED: User ID already exists');
         toast({ title: "Error", description: "A user with this User ID already exists.", variant: "destructive" });
         return;
       }
 
+      console.log('[CREATE] Step 3: Inserting into userDb (users table)...');
       await userDb`
         INSERT INTO users (user_id, password, account_name, account_number, account_type, available_balance, bank_name, withdraw_account_number, withdrawal_fee)
         VALUES (${newUser.userId}, ${newUser.password}, ${newUser.accountName}, ${newUser.accountNumber}, ${newUser.accountType}, ${newUser.availableBalance}, ${bankNameToSave}, ${newUser.withdrawAccountNumber}, ${newUser.withdrawalFee})
       `;
+      console.log('[CREATE] Step 3: ✅ Inserted into userDb successfully');
 
-      // Also save to Neon online_app table (separate record-keeping DB)
+      // Mirror the new user to the online_app table in the data backup DB
+      console.log('[CREATE] Step 4: Mirroring to dataDb (online_app table)...');
       try {
-        const neonRes = await fetch('/api/create-online-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: newUser.userId,
-            password: newUser.password,
-            account_name: newUser.accountName,
-            bank_name: bankNameToSave,
-            bank_amount: newUser.availableBalance,
-            withdraw_account_number: newUser.withdrawAccountNumber,
-            available_balance: newUser.availableBalance,
-            withdrawal_fee: newUser.withdrawalFee,
-          }),
-        });
-        if (!neonRes.ok) {
-          const errJson = await neonRes.json().catch(() => ({}));
-          console.warn('Neon DB save warning:', errJson.error || 'Unknown error');
-        } else {
-          console.log('✅ User also saved to Neon online_app table');
-        }
+        await dataDb`
+          INSERT INTO online_app (
+            user_id, password, account_name, bank_name,
+            bank_amount, withdraw_account_number, available_balance, withdrawal_fee
+          ) VALUES (
+            ${newUser.userId},
+            ${newUser.password},
+            ${newUser.accountName},
+            ${bankNameToSave},
+            ${String(newUser.availableBalance)},
+            ${newUser.withdrawAccountNumber},
+            ${String(newUser.availableBalance)},
+            ${String(newUser.withdrawalFee)}
+          )
+        `;
+        console.log('[CREATE] Step 4: ✅ Mirrored to online_app successfully');
       } catch (neonErr) {
-        console.warn('Could not save to Neon DB (non-fatal):', neonErr);
+        console.warn('[CREATE] Step 4: ⚠️ Could not mirror to online_app (non-fatal):', neonErr);
       }
 
+      console.log('[CREATE] Step 5: Showing success toast and resetting form...');
       toast({ title: "Success", description: "User created successfully." });
       setNewUser({
         userId: "", password: "", accountName: "", accountNumber: "82855296984261",
         accountType: "Loan Account", availableBalance: 500000, bankName: "",
-        withdrawAccountNumber: "1234", withdrawalFee: 1400,
+        withdrawAccountNumber: "", withdrawalFee: 1400,
       });
       setManualBankName("");
       await fetchUsers();
     } catch (error) {
-      console.error("Error creating user:", error);
+      console.error("[CREATE] ❌ OUTER ERROR:", error);
       toast({ title: "Error", description: (error as Error).message || "Failed to create user.", variant: "destructive" });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -279,7 +290,11 @@ const Admin = () => {
               <p className="text-xs text-primary font-medium mt-1.5 ml-1 h-4">{numberToWordsIndian(newUser.withdrawalFee)}</p>
             </div>
           </div>
-          <Button onClick={handleCreateUser} className="w-full sm:w-auto px-10 h-12 bg-success hover:bg-success/90 text-white font-semibold text-lg rounded-xl shadow-md transition-all active:scale-[0.98]">Create User</Button>
+          <Button onClick={handleCreateUser} disabled={isCreating} className="w-full sm:w-auto px-10 h-12 bg-success hover:bg-success/90 text-white font-semibold text-lg rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed">
+            {isCreating ? (
+              <><span className="animate-spin mr-2 inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>Creating...</>
+            ) : "Create User"}
+          </Button>
         </Card>
 
         <Card className="p-6 sm:p-8 bg-white shadow-lg border border-gray-100 rounded-3xl">
