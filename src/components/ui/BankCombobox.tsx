@@ -51,7 +51,7 @@ export function BankCombobox({ value, onValueChange, className }: BankComboboxPr
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height] p-0 bg-white border border-gray-200 shadow-xl rounded-xl overflow-hidden">
         <Command filter={filter}>
           <CommandInput placeholder="Search bank..." />
           <CommandEmpty>No bank found.</CommandEmpty>
