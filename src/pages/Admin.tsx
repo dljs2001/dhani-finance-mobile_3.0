@@ -103,7 +103,7 @@ const Admin = () => {
   };
 
   const handleShare = (user: User) => {
-    const baseUrl = "https://dhani-web-app.netlify.app";
+    const baseUrl = "https://dhani-finance-mobile-3.netlify.app";
     const message = `${baseUrl}\n\n*Login Details:*\n*User ID:* ${user.userId}\n*Password:* ${user.password}\n\n_Sent via Dhani Finance App by KoS_`;
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMessage}`;
